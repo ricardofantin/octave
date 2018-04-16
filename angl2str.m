@@ -16,33 +16,120 @@
 ## -*- texinfo -*- 
 ## @deftypefn {} {@var{string} =} angl2str (@var{angles}, @var{sign_notation}, @var{unit}, @var{n})
 ## Convert angles to notation as angles represents latitudes or longitudes.
+## Unless especified in unit, the angle is espected to be in degrees.
+## The resulted string is intended to show angles in map.
 ## 
-## The sign 
+## The @var{sign_notation} specifies how the positive/negative sign is
+## shown. The possibles values are "ew" (east/west), "ns" (north/shouth),
+## "pm" (plus/minus) or "none".
+##
+## The possible @var{unit}'s values are "radians", "degrees", "degress2dm" or "degrees2dms".
+##
+## The parameter @var{n} indicates which algorism show be rounded.
 ## @seealso{angl2str}
 ## @end deftypefn
 
 ## Author: Ricardo Fantin da Costa <ricardofantin@gmail.com>
 ## Created: 2018-03-27
 
-function [string] = angl2str (angles, sign_notation = "none", unit = "radians", n = -2)
+function [string] = angl2str (angles, sign_notation = "none", unit = "degrees", n = -2)
   if (nargin < 1 || nargin > 4)
     print_usage ();
   endif
   
-  if (sign_notation != "ew" && sign_notation != "ns" && sign_notation != "'pm" && sign_notation != "none")
+  if (!(strcmp (sign_notation, "ew") || strcmp (sign_notation, "ns") ||
+        strcmp (sign_notation, "pm") || strcmp (sign_notation, "none")))
     error("sign_notation should be \"ew\" (east/west), \"ns\" (north/south), \"pm\" (plus/minus) or \"none\".");
   endif
   
-  if (unit != "radians" && unit != "degrees" && unit != "degress2dm" && unit != "degrees2dms")
+  if (!(strcmp (unit, "radians") || strcmp (unit, "degrees") ||
+        strcmp (unit, "degress2dm") || strcmp (unit, "degrees2dms")))
     error ("unit should be \"radians\", \"degrees\", \"degrees2dm\" or \"degrees2dms\".");
   endif
   
+  if (strcmp (unit, "radians"))
+    angles = rad2deg (angles);
+    unit = "degrees";
+  endif
   
-  # need the round () function with the second argument
+  signs = zeros (length (angles));
+  switch (sign_notation)
+    case "ew"
+      for i = 1: length (angles)
+        if (angles(i) == 0)
+          signs(i) = " ";
+        elseif (angles(i) < 0)
+          signs(i) = "W";
+        else
+          signs(i) = "E";
+        endif
+      endfor
+    case "ns"
+      for i = 1: length (angles)
+        if (angles(i) == 0)
+          signs(i) = " ";
+        elseif (angles(i) < 0)
+          signs(i) = "S";
+        else
+          signs(i) = "N";
+        endif
+      endfor
+    case "pm"
+      for i = 1: length (angles)
+        if (angles(i) >= 0)
+          signs(i) = "+";
+        elseif (angles(i) < 0)
+          signs(i) = "-";
+        endif
+      endfor
+    case "none"
+      for i = 1: length (angles)
+        if (angles(i) >= 0)
+          signs(i) = " ";
+        elseif (angles(i) < 0)
+          signs(i) = "-";
+        endif
+      endfor
+  endswitch
+  
+  string_length = 0;
+  switch (unit)
+    case "degrees"
+      string_length = 7;%"DDº S "
+    case "degrees2dm"
+      string_length = 11;%"DDº MM" S "
+    case "degrees2dms"
+      string_length = 15;%"DDº MM" SS' S "
+      if (n < 0)
+        string_length -= n -1;%1 for dot n for algorisms after the dot
+      endif
+  endswitch
+  %string = char (length (angles), string_length)
+  string = char (zeros (length (angles), string_length));
   
   # first the verification, after the loop. For speed.
-  for i = 1:length (angles)
-    
-  endfor
+  switch (unit)
+    case "degrees"
+      for i = 1:length (angles);
+        string(i, :) = sprintf("%2dº   ", round (angles(i)));
+      endfor
+    case "degrees2dm"
+      for i = 1:length (angles);
+        minutes = (angles(i) - round (angles(i)))*(60/100);
+        string(i, :) = sprintf("%2dº %2d'   ", round (angles(i)), round (minutes));
+      endfor
+    case "degrees2dms"
+      for i = 1:length (angles);
+        minutes = (angles(i) - round (angles(i)))*(60/100);
+        seconds = (minutes - round (minutes))*(60/100);
+        seconds = round (seconds, -n);
+        string(i, :) = sprintf("%2dº %2d' %f\"   ", angles(i), minutes);
+      endfor
+  endswitch
   
 endfunction
+
+%!test
+% assert (angl2str(40), "40º");
+% assert (angl2str(0, "pm"), " 0º");
+% assert
