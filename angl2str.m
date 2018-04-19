@@ -24,9 +24,11 @@
 ## "pm" (plus/minus) or "none".
 ##
 ## The possible @var{unit}'s values are "radians", "degrees", "degress2dm" or "degrees2dms".
+## dms stands for degrees minutes and seconds.
 ##
-## The parameter @var{n} indicates which algorism show be rounded.
-## @seealso{angl2str}
+## The parameter @var{n} indicates how many algarishm will be used to round the
+## last angle part.
+## @seealso{str2angle}
 ## @end deftypefn
 
 ## Author: Ricardo Fantin da Costa <ricardofantin@gmail.com>
@@ -132,4 +134,4 @@ endfunction
 %!test
 % assert (angl2str(40), "40º");
 % assert (angl2str(0, "pm"), " 0º");
-% assert
+% assert (angl2str(, ""), "");
