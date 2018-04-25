@@ -22,10 +22,10 @@
 ## The @var{sign_notation} specifies how the positive/negative sign is
 ## shown. The possibles values are "ew" (east/west), "ns" (north/shouth),
 ## "pm" (plus/minus) or "none".
-##
+## 
 ## The possible @var{unit}'s values are "radians", "degrees", "degress2dm" or "degrees2dms".
 ## dms stands for degrees minutes and seconds.
-##
+## 
 ## The parameter @var{n} indicates how many algarishm will be used to round the
 ## last angle part.
 ## @seealso{str2angle}
@@ -39,13 +39,15 @@ function [string] = angl2str (angles, sign_notation = "none", unit = "degrees", 
     print_usage ();
   endif
   
+  sign_notation = tolower(sign_notation);
   if (!(strcmp (sign_notation, "ew") || strcmp (sign_notation, "ns") ||
         strcmp (sign_notation, "pm") || strcmp (sign_notation, "none")))
     error("sign_notation should be \"ew\" (east/west), \"ns\" (north/south), \"pm\" (plus/minus) or \"none\".");
   endif
   
+  unit = tolower(unit);
   if (!(strcmp (unit, "radians") || strcmp (unit, "degrees") ||
-        strcmp (unit, "degress2dm") || strcmp (unit, "degrees2dms")))
+        strcmp (unit, "degrees2dm") || strcmp (unit, "degrees2dms")))
     error ("unit should be \"radians\", \"degrees\", \"degrees2dm\" or \"degrees2dms\".");
   endif
   
@@ -93,6 +95,7 @@ function [string] = angl2str (angles, sign_notation = "none", unit = "degrees", 
         endif
       endfor
   endswitch
+  angles = abs (angles);
   
   string_length = 0;
   switch (unit)
@@ -102,10 +105,10 @@ function [string] = angl2str (angles, sign_notation = "none", unit = "degrees", 
       string_length = 11;%"DDº MM" S "
     case "degrees2dms"
       string_length = 15;%"DDº MM" SS' S "
-      if (n < 0)
-        string_length -= n -1;%1 for dot n for algorisms after the dot
-      endif
   endswitch
+%  if (n < 0)
+%    string_length -= n -1;%1 for dot n for algorisms after the dot
+%  endif
   %string = char (length (angles), string_length)
   string = char (zeros (length (angles), string_length));
   
@@ -113,19 +116,19 @@ function [string] = angl2str (angles, sign_notation = "none", unit = "degrees", 
   switch (unit)
     case "degrees"
       for i = 1:length (angles);
-        string(i, :) = sprintf("%2dº   ", round (angles(i)));
+        string(i, :) = sprintf("%2dº %c ", round (angles(i)), signs(i));
       endfor
     case "degrees2dm"
       for i = 1:length (angles);
         minutes = (angles(i) - round (angles(i)))*(60/100);
-        string(i, :) = sprintf("%2dº %2d'   ", round (angles(i)), round (minutes));
+        string(i, :) = sprintf("%2dº %02d' %c ", round (angles(i)), round (minutes), signs(i));
       endfor
     case "degrees2dms"
       for i = 1:length (angles);
         minutes = (angles(i) - round (angles(i)))*(60/100);
         seconds = (minutes - round (minutes))*(60/100);
         seconds = round (seconds, -n);
-        string(i, :) = sprintf("%2dº %2d' %f\"   ", angles(i), minutes);
+        string(i, :) = sprintf("%2dº %02d' %02d\" %c ", angles(i), minutes, signs(i));
       endfor
   endswitch
   
