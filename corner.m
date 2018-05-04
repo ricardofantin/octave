@@ -80,7 +80,7 @@ function [points] = corner (I, varargin)
     error ("One of you parameters only have a name or property and not a pair");
   endif
   if (nargin > nextArgument + 2) % +1 for propertie name + 1 for value
-    [unused FilterCoefficients QualityLevel SensitivityFactor] = parseparams(varargin(nextArgument:end), "FilterCoefficients", "QualityLevel", "SensitivityFactor");
+    [unused FilterCoefficients QualityLevel SensitivityFactor] = parseparams(varargin(nextArgument:end), "FilterCoefficients", fspecial ("gaussian", [5 1], 1.5), "QualityLevel", 0.01, "SensitivityFactor", 0.04);
   endif
   Q = cornermetric (I, method, "FilterCoefficients", FilterCoefficients, "SensitivityFactor", SensitivityFactor);
   [s ind] = sort (Q(:), "descend");
