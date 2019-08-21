@@ -1,0 +1,20 @@
+Hartmut, thank you very much for your review.
+
+I'll answer each point in the same order.
+
+* The execution speed is a problem that I cannot solve. The otsu paper explicit the need to test all possible divisions, not to optimise. (Test execution time, and get these values from MATLAB)
+* The not matlab compatible results is a mistake I made. I submited the wrong file, even the tests in the file do not pass. (test the answers in cameran.tif, coin.tif and other default images)
+* I will cite otsu paper. I did not find one implementation of multithresh in internet, my implementation apparently is the first public available multithresh code.
+* I didn't understand what is to flat a RGB image before. I got help from IRC, and now things are right.
+* Warning message solved (included the name of file/function).
+* I asked some friends help to review my english. Many details were included and the overall quality was improved.
+* Quality parameter is now cited in the help text.
+* There are three functions that implement otsu paper, and the others functions cite the histogram as a possible input. I think MATLAB can also handle histograms.
+* How to make histograms from inputs different of uint8 and uint16? If very different numbers exist in one image, then the execution time could explode.
+* The window opened in test is now in a demo.
+* I think there is no double calculation in 60 and 61, both operations are needed.
+* Some new test cases were included. All lines are covered in the tests now.
+
+Hartmut, your review motivated me to continue. I have two half finish functions that I will work to include in Octave soon.
+
+The code is understandable? I mean, there are some optimisations that I made that could leave the code much more hard to understand. The better division formula is in the help text, but even so I don't know if other person can understand why I can remove the zeros from the histogram during the search. (explain in code that remove zeros from histogram can be done because I'm counting elements in a range and zero elements would not change anything). The code optimisation is comparable with graythresh() and im2bw()?

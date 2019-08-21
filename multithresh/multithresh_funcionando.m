@@ -1,4 +1,4 @@
-## Copyright (C) 2018 Ricardo Fantin da Costa
+## Copyright (C) 2017 Ricardo Fantin da Costa
 ## 
 ## This program is free software; you can redistribute it and/or modify it
 ## under the terms of the GNU General Public License as published by
@@ -28,9 +28,9 @@
 ## @end deftypefn
 
 ## Author: Ricardo Fantin da Costa <ricardofantin@gmail.com>
-## Created: 2018-03-16
+## Created: 2017-12-24
 
-function [thresh, quality] = multithresh (I, N = 1)
+function [thresh, quality] = multithresh_funcionando (I, N = 1)
   if (nargin < 1 || nargin > 2)
     print_usage ();
   endif
@@ -43,11 +43,12 @@ function [thresh, quality] = multithresh (I, N = 1)
   if (isvector (I) && !issparse (I) && isreal (I) && all (I >= 0))
     H = I;
   # need to make a histogram
-  elseif ( isa (I, "uint8") )
-    H = hist (I(:), max (I(:)), 1);
-  elseif ( isa (I, "uint16") )
-    H = hist (I(:), max (I(:)), 1);
+  elseif ( isa(I, "uint8") )
+    H = hist(I(:), max(I(:)), 1);
+  elseif ( isa(I, "uint16") )
+    H = hist(I(:), max(I(:)), 1);
   endif
+  # [TODO] we can make this function faster removing zero values in the histogram, and in the end correct the thresholds values
   
   # H is our histogram, need to make the divisions
   accumulative = cumsum (H);
@@ -55,44 +56,40 @@ function [thresh, quality] = multithresh (I, N = 1)
   total = accumulative(n_bins);
   accumulative_moment = cumsum ((1:n_bins) .* H);
   
-  # Removing zero values to speed calculation and
-  # remove possible division by zero
-  zeros_values = find (H == 0);
-  nonzeros_values = find (H != 0);
-  accumulative = accumulative(nonzeros_values);
-  accumulative_moment = accumulative_moment(nonzeros_values);
-  n_bins = length (accumulative);
-  
-  # Testing if is wanted more regions than existing color levels
-  if(N >= n_bins)
-    warning (["There are " num2str(n_bins) " different colors (bins in Histogram), this number should be bigger than N"])
-    thresh = 1:N;
-    quality = 0;
-    return;
-  endif
-  
   better = 0;
   better_combination = zeros (N, 1);
   mi_T = 0;
-  for i = 1:length (H)
+  for i = 1:n_bins
     mi_T += i * H(i);
   endfor
   
   combination = 1:N;
   
   # There are N + 1 classes
-  w = zeros (N + 1, 1); # percentage of pixels in each class
-  mi = zeros (N + 1, 1); # variance of pixels in each class
+  w = zeros(N + 1, 1); # percentage of pixels in each class
+  mi = zeros(N + 1, 1); # variance of pixels in each class
   while true
     # evaluate combination
-    w(1) = accumulative (combination(1));
-    mi(1) = accumulative_moment (combination(1)) / w(1);
+    w(1) = accumulative (combination (1));
+    if(w(1) != 0)
+      mi(1) = accumulative_moment (combination(1)) / w(1);
+    else
+      mi(1) = 0;
+    endif
     for i = 2:N
       w(i) = accumulative(combination(i)) - accumulative(combination(i - 1));
-      mi(i) = (accumulative_moment(combination(i)) - accumulative_moment(combination(i - 1))) / w(i);
+      if(w(i) != 0)
+        mi(i) = (accumulative_moment(combination(i)) - accumulative_moment(combination(i - 1))) / w(i);
+      else
+        mi(i) = 0;
+      endif
     endfor
     w(N + 1) = accumulative(end) - accumulative( combination(N) );
-    mi(N + 1) = (accumulative_moment(end) - accumulative_moment( combination(N) ) ) / (w(N + 1));
+    if(w(N + 1) != 0)
+      mi(N + 1) = (accumulative_moment(end) - accumulative_moment( combination(N) ) ) / (w(N + 1));
+    else
+      mi(N + 1) = 0;
+    endif
     
     value = 0;
     for i = 1 : N + 1
@@ -108,7 +105,7 @@ function [thresh, quality] = multithresh (I, N = 1)
     # which thresholds we should update?
     upd = 0;
     for i = N:-1:1
-      if combination(i) != n_bins - (N-i) - 1
+      if combination(i) != n_bins - (N-i)
         upd = i;
         break;
       endif
@@ -119,31 +116,13 @@ function [thresh, quality] = multithresh (I, N = 1)
     combination(upd:end) = (combination(upd) + 1):(combination(upd) + 1 + (N - upd));
   endwhile
   
-  for i = 1:length (better_combination)
-    better_combination(i) += length (find (zeros_values <= better_combination(i)));
-  endfor
-  
   thresh = better_combination;
   
   if nargout() == 2
     # calculate the quality
     # eta = o_B**2 / o_T**2
     # o_T = (i - mi_T)**2 p_i
-    n_bins = length (H);
     o_T2 = sum ((((1:n_bins) .- ones (1, n_bins).*mi_T ).^2) .* H );
     quality = better/o_T2;
   endif
 endfunction
-
-%!test
-%! U = imread ("default.img");
-%! [T1, Q1] = graythresh (U);
-%! [T2, Q2] = multithresh (U);
-%! assert (Q1, Q2, 0.001)
-%! [T3, Q3] = multithresh (U, 2);
-%! assert (T3, [17 36])
-%! imshow (U)
-%! V = zeros (size (U));
-%! V(U > T3(1) & U <= T3(2)) = 0.5;
-%! V(U > T3(2)) = 1;
-%! figure, imshow (V);
