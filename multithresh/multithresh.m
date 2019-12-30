@@ -42,11 +42,8 @@ function [thresh, quality] = multithresh (I, N = 1)
   # we have a gray image or a histogram?
   if (isvector (I) && !issparse (I) && isreal (I) && all (I >= 0))
     H = I;
-  # need to make a histogram
-  elseif ( isa (I, "uint8") )
-    H = (histc (I(:), 0:max (I(:))))./sum (I(:));
-  elseif ( isa (I, "uint16") )
-    H = hist (I(:), 65535, 1);
+  else # make a histogram
+    H = hist (I(:), 0:intmax (class (I)));
   endif
   
   # H is our histogram, need to make the divisions
@@ -65,7 +62,9 @@ function [thresh, quality] = multithresh (I, N = 1)
   
   # Testing if is wanted more regions than existing color levels
   if(N >= n_bins)
-    warning (["multithresh.m: Warning there are " num2str(n_bins) " different colors (bins in Histogram), this number should be bigger than N"])
+    warning (["multithresh.m: Warning there are " num2str(n_bins)
+    " different colors (bins in Histogram), this number should be"
+    " bigger than " N " N (number of divisions)"])
     thresh = 1:N;
     quality = 0;
     return;
@@ -85,8 +84,8 @@ function [thresh, quality] = multithresh (I, N = 1)
   mi = zeros (N + 1, 1); # variance of pixels in each class
   while true
     # evaluate combination
-    w(1) = accumulative (combination(1));
-    mi(1) = accumulative_moment (combination(1)) / w(1);
+    w(1) = accumulative(combination(1));
+    mi(1) = accumulative_moment(combination(1)) / w(1);
     for i = 2:N
       w(i) = accumulative(combination(i)) - accumulative(combination(i - 1));
       mi(i) = (accumulative_moment(combination(i)) - accumulative_moment(combination(i - 1))) / w(i);
@@ -139,9 +138,10 @@ endfunction
 %! U = imread ("default.img");
 %! [T1, Q1] = graythresh (U);
 %! [T2, Q2] = multithresh (U);
-%! assert (Q1, Q2, 0.001)
+%! assert (Q2, Q1, 0.001)
 %! [T3, Q3] = multithresh (U, 2);
 %! assert (T3, [17 36])
+%!
 %!demo
 %! U = imread ("default.img");
 %! [T3] = multithresh (U, 2);
