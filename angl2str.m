@@ -100,11 +100,11 @@ function [string] = angl2str (angles, sign_notation = "none", unit = "degrees", 
   string_length = 0;
   switch (unit)
     case "degrees"
-      string_length = 7;%"DDº S "
+      string_length = 7;%"DD° S "
     case "degrees2dm"
-      string_length = 11;%"DDº MM" S "
+      string_length = 11;%"DD° MM" S "
     case "degrees2dms"
-      string_length = 15;%"DDº MM" SS' S "
+      string_length = 15;%"DD° MM" SS' S "
   endswitch
 %  if (n < 0)
 %    string_length -= n -1;%1 for dot n for algorisms after the dot
@@ -116,25 +116,24 @@ function [string] = angl2str (angles, sign_notation = "none", unit = "degrees", 
   switch (unit)
     case "degrees"
       for i = 1:length (angles);
-        string(i, :) = sprintf("%2dº %c ", round (angles(i)), signs(i));
+        string(i, :) = sprintf("%2d° %c ", round (angles(i)), signs(i));
       endfor
     case "degrees2dm"
       for i = 1:length (angles);
         minutes = (angles(i) - round (angles(i)))*(60/100);
-        string(i, :) = sprintf("%2dº %02d' %c ", round (angles(i)), round (minutes), signs(i));
+        string(i, :) = sprintf("%2d° %02d' %c ", round (angles(i)), round (minutes), signs(i));
       endfor
     case "degrees2dms"
       for i = 1:length (angles);
         minutes = (angles(i) - round (angles(i)))*(60/100);
         seconds = (minutes - round (minutes))*(60/100);
         seconds = round (seconds, -n);
-        string(i, :) = sprintf("%2dº %02d' %02d\" %c ", angles(i), minutes, signs(i));
+        string(i, :) = sprintf("%2d° %02d' %02d\" %c ", angles(i), minutes, signs(i));
       endfor
   endswitch
   
 endfunction
 
 %!test
-% assert (angl2str(40), "40º");
-% assert (angl2str(0, "pm"), " 0º");
-% assert (angl2str(, ""), "");
+%!assert (angl2str(40), "40°");
+%!assert (angl2str(0, "pm"), " 0°");
