@@ -21,7 +21,7 @@
 ## 
 ## The @var{sign_notation} specifies how the positive/negative sign is
 ## shown. The possibles values are "ew" (east/west), "ns" (north/shouth),
-## "pm" (plus/minus) or "none".
+## "pm" (plus/minus) or "none". Default value is "none".
 ## 
 ## The possible @var{unit}'s values are "radians", "degrees", "degress2dm" or "degrees2dms".
 ## dms stands for degrees minutes and seconds.
@@ -39,21 +39,18 @@ function [string] = angl2str (angles, sign_notation = "none", unit = "degrees", 
     print_usage ();
   endif
   
+  original = sign_notation;
   sign_notation = tolower(sign_notation);
   if (!(strcmp (sign_notation, "ew") || strcmp (sign_notation, "ns") ||
         strcmp (sign_notation, "pm") || strcmp (sign_notation, "none")))
-    error("sign_notation should be \"ew\" (east/west), \"ns\" (north/south), \"pm\" (plus/minus) or \"none\".");
+    error(["angl2str.m: sign_notation should be \"ew\" (east/west), \"ns\" (north/south), \"pm\" (plus/minus) or \"none\". Got " original "."]);
   endif
   
+  original = unit;
   unit = tolower(unit);
   if (!(strcmp (unit, "radians") || strcmp (unit, "degrees") ||
         strcmp (unit, "degrees2dm") || strcmp (unit, "degrees2dms")))
-    error ("unit should be \"radians\", \"degrees\", \"degrees2dm\" or \"degrees2dms\".");
-  endif
-  
-  if (strcmp (unit, "radians"))
-    angles = rad2deg (angles);
-    unit = "degrees";
+    error (["angl2str.m: unit should be \"radians\", \"degrees\", \"degrees2dm\" or \"degrees2dms\". Got " original "."]);
   endif
   
   signs = zeros (length (angles));
@@ -97,6 +94,11 @@ function [string] = angl2str (angles, sign_notation = "none", unit = "degrees", 
   endswitch
   angles = abs (angles);
   
+  if (strcmp (unit, "radians"))
+    angles = rad2deg (angles);
+    unit = "degrees";
+  endif
+  
   string_length = 0;
   switch (unit)
     case "degrees"
@@ -128,12 +130,23 @@ function [string] = angl2str (angles, sign_notation = "none", unit = "degrees", 
         minutes = (angles(i) - round (angles(i)))*(60/100);
         seconds = (minutes - round (minutes))*(60/100);
         seconds = round (seconds, -n);
-        string(i, :) = sprintf("%2d° %02d' %02d\" %c ", angles(i), minutes, signs(i));
+        string(i, :) = sprintf("%2d° %02d' %02d\" %c ", angles(i), minutes, seconds, signs(i));
       endfor
   endswitch
   
 endfunction
 
 %!test
-%!assert (angl2str(40), "40°");
-%!assert (angl2str(0, "pm"), " 0°");
+%!assert (angl2str (-12), "-12°   ");
+%!assert (angl2str (-5.333333333333), "-12°   ");
+%!assert (angl2str (0), "0°   ");
+%!assert (angl2str (1), "1°   ");
+%!assert (angl2str (27), "27°   ");
+%!assert (angl2str (77.77777777), "77°   ");
+%!assert (angl2str (40), "40°   ");
+%!assert (angl2str (-12, "ew"), "12° w");
+%!assert (angl2str (27, "ew"), "27° e");
+%!assert (angl2str (-12, "ns"), "12° s");
+%!assert (angl2str (27, "ns"), "27° n");
+%!assert (angl2str(0, "pm"), " 0° + ");
+%!assert (angl2str(-12, "pm"), "12° - ");

@@ -19,7 +19,7 @@
 ## @seealso{angl2str}
 ## @end deftypefn
 
-## Author: Ricardo Fantin da Costa <ricardo@ricardo-desktop>
+## Author: Ricardo Fantin da Costa <ricardofantin@gmail.com>
 ## Created: 2018-04-18
 
 function [angles] = str2angle (str)
@@ -48,3 +48,7 @@ function [angles] = str2angle (str)
     endif
   endfor
 endfunction
+
+%!test
+%!assert();
+%!assert();
