@@ -1,0 +1,105 @@
+>> % script to compare to Matlab results. Just random inputs and after some error inputs.
+>> a = [-12; -5.3333; 0; 1; 27; 77.77777];
+>> s = {'ew'; 'ns'; 'pm'; 'none'};
+>> u = {'radians'; 'degrees'; 'degrees2dm'; 'degrees2dms'};
+>> n = [-5; -2; 0; 1; 5];
+>> for i = 1:length (a)
+  for j = 1:length (s)
+    for k = 1:length (u)
+      for l = 1:length (n)
+        {a(i); s(j); u(k); n(l);
+         angl2str(a(i), s(j), u(k), n(l))}
+      end
+    end
+  end
+end
+SWITCH expression must be a scalar or a character vector.
+   
+Error in angl2str>buildPrefixAndSuffix (line 120)
+switch lower(signcode)
+   
+Error in angl2str>doAngle2str (line 109)
+[prefix, suffix] = buildPrefixAndSuffix(angin, signcode);
+   
+Error in angl2str (line 86)
+str = doAngle2str(angin, signcode, units, digits);
+   
+>> % angles over 180 and 360 in latitude and longitude
+>> angl2str ([-181; 181; -361; 361])
+   
+ans =
+   
+  4x17 char array
+   
+    ' -181.00^{\circ} '
+    '  181.00^{\circ} '
+    ' -361.00^{\circ} '
+    '  361.00^{\circ} '
+   
+>> angl2str ([-181; 181; -361; 361], 'ew')
+   
+ans =
+   
+  4x18 char array
+   
+    ' 181.00^{\circ} W '
+    ' 181.00^{\circ} E '
+    ' 361.00^{\circ} W '
+    ' 361.00^{\circ} E '
+   
+>> angl2str ([-181; 181; -361; 361], 'ns')
+   
+ans =
+   
+  4x18 char array
+   
+    ' 181.00^{\circ} S '
+    ' 181.00^{\circ} N '
+    ' 361.00^{\circ} S '
+    ' 361.00^{\circ} N '
+   
+>> % unexpected inputs types:
+>> angl2str ('string_instead_of_number')
+Error using ignoreComplex (line 10)
+Function angl2str expected its argument ANGLE to be numeric.
+   
+Error in angl2str (line 79)
+angin = ignoreComplex(angin, mfilename, 'ANGLE');
+   
+>> angl2str (1, 'SIGN_NOTATION_UNKNOWN')
+Error using angl2str>buildPrefixAndSuffix (line 150)
+Unrecognized SIGNCODE string
+   
+Error in angl2str>doAngle2str (line 109)
+[prefix, suffix] = buildPrefixAndSuffix(angin, signcode);
+   
+Error in angl2str (line 86)
+str = doAngle2str(angin, signcode, units, digits);
+   
+>> angl2str (1, 'none', 'UNIT_UNKNOWN')
+Error using checkangleunits>badAngleUnits (line 51)
+Invalid or unknown angle units string: 'UNIT_UNKNOWN'.
+Use 'degrees' or ' radians' instead.
+   
+Error in checkangleunits (line 22)
+    badAngleUnits(units)
+   
+Error in angl2str>checkunits (line 194)
+    units = checkangleunits(units);
+   
+Error in angl2str (line 69)
+            units = checkunits(units);
+   
+>> angl2str (1, 'none', 'degrees', 'string_instead_of_number')
+Error using round
+The second input must be a real integer scalar.
+   
+Error in angl2str>formatDegrees (line 262)
+angin = round(angin,digits);
+   
+Error in angl2str>doAngle2str (line 97)
+        str = formatDegrees(angin, digits);
+   
+Error in angl2str (line 86)
+str = doAngle2str(angin, signcode, units, digits);
+   
