@@ -7,8 +7,7 @@ for i = 1:length (a)
   for j = 1:length (s)
     for k = 1:length (u)
       for l = 1:length (n)
-        {a(i); cell2mat(s(j)); cell2mat(u(k)); n(l);
-        angl2str(a(i), cell2mat(s(j)), cell2mat(u(k)), n(l))}
+        print2test(a(i), cell2mat(s(j)), cell2mat(u(k)), n(l))
       end
     end
   end
@@ -22,3 +21,20 @@ angl2str('string_instead_of_number')
 angl2str(1, 'SIGN_NOTATION_UNKNOWN')
 angl2str(1, 'none', 'UNIT_UNKNOWN')
 angl2str(1, 'none', 'degrees', 'string_instead_of_number')
+
+function [string] = print2test(input1, input2, input3, input4)
+  if nargin == 1
+    arguments = num2str(input1);
+    result = angl2str(input1);
+  elseif nargin == 2
+    arguments = [num2str(input1) ', "' num2str(input2) '"'];
+    result = angl2str(input1, input2);
+  elseif nargin == 3
+    arguments = [num2str(input1) ', "' num2str(input2) '", "' num2str(input3) '"'];
+    result = angl2str(input1, input2, input3);
+  elseif nargin == 4
+    arguments = [num2str(input1) ', "' num2str(input2) '", "' num2str(input3) '", ' num2str(input4)];
+    result = angl2str(input1, input2, input3, input4);
+  end
+  string = ['%!assert (angl2str (', arguments ,'), "', result, '");'];
+end
