@@ -88,18 +88,27 @@ function [string] = angl2str (angles, sign_notation = "none", unit = "degrees", 
       number_part = [round2str(angles, n, first=true) '°'];# num2str (angles, n);
     case "degrees2dm"
       for i = 1:length (angles);
-        d = round (angles); # degrees
+        d = floor (angles); # degrees
         m = (angles - d) * 60; # minutes
+        m = round (m, -n);
         degrees_part = num2str (d);
         minutes_part = round2str(m, n);
         number_part = [degrees_part '° ' minutes_part ''''];
       endfor
     case "degrees2dms"
       for i = 1:length (angles);
-        d = round (angles); # degrees
+        d = floor (angles); # degrees
         aux = m = (angles - d) * 60; # minutes
-        m = round (m);
-        s = (aux - m) * 60; # seconds
+        m = floor (m);
+        s = round ((aux - m) * 60, -n); # seconds
+        if (s >= 60)
+          m += 1;
+          s = 0;
+        endif
+        if (m == 60)
+          d += 1;
+          s = 0;
+        endif
         degrees_part = num2str (d);
         minutes_part = round2str (m);
         seconds_part = round2str (s, n);
@@ -119,20 +128,18 @@ function [string] = angl2str (angles, sign_notation = "none", unit = "degrees", 
   else # sign_notation is "pm" or "none" and unit is degrees, degrees2dm or degrees2dms
     string = [space_char signs number_part space_char];
   endif
-  
 endfunction
 
 # digits to represent
 function [str] = round2str(number, dig = 0, first = false)
   if (dig < 0)
-    significants = num2str (-1 * dig);
+    significants = num2str (-dig);
     str = num2str (number, ['%.' significants 'f']);
   elseif (dig == 0)
-    str = num2str (number, ['%.f']);
+    str = num2str (round (number));
   else
-    multiplier = 10 ** (dig);
-    number = round (number / multiplier) * multiplier;
-    str = num2str (number, ['%.f']);
+    number = round (number, -dig);
+    str = num2str (number, '%.f');
   endif
   
   if (first == false && number < 10)
@@ -622,16 +629,3 @@ endfunction
 %!assert (angl2str (77.7778, "none", "degrees2dms", 0), " 77° 46' 40\" ");
 %!assert (angl2str (77.7778, "none", "degrees2dms", 1), " 77° 46' 40\" ");
 %!assert (angl2str (77.7778, "none", "degrees2dms", 5), " 77° 47' 00\" ");
-%!assert (angl2str (-12), "-12°   ");
-%!assert (angl2str (-5.333333333333), "-12°   ");
-%!assert (angl2str (0), "0°   ");
-%!assert (angl2str (1), "1°   ");
-%!assert (angl2str (27), "27°   ");
-%!assert (angl2str (77.77777777), "77°   ");
-%!assert (angl2str (40), "40°   ");
-%!assert (angl2str (-12, "ew"), "12° w");
-%!assert (angl2str (27, "ew"), "27° e");
-%!assert (angl2str (-12, "ns"), "12° s");
-%!assert (angl2str (27, "ns"), "27° n");
-%!assert (angl2str(0, "pm"), " 0° + ");
-%!assert (angl2str(-12, "pm"), "12° - ");
