@@ -54,7 +54,7 @@ function [string] = angl2str (angles, sign_notation = "none", unit = "degrees", 
         strcmp (unit, "degrees2dm") || strcmp (unit, "degrees2dms")))
     error (["angl2str.m: unit should be \"radians\", \"degrees\", \"degrees2dm\" or \"degrees2dms\". Got " original "."]);
   endif
-    
+  
   % vectorize these for
   signs = char (zeros (length (angles), 1));
   switch (sign_notation)
@@ -105,55 +105,79 @@ function [string] = angl2str (angles, sign_notation = "none", unit = "degrees", 
       number_part = [round2str(angles, n, first=true) '°'];% num2str (angles, n);
     case "degrees2dm"
       for i = 1:length (angles);
-        d = floor (angles); % degrees
+        d = round (angles); % degrees
         m = (angles - d) * 60; % minutes
+        degrees_part = num2str (d);
         minutes_part = round2str(m, n);
-        number_part = [num2str(d), '° ', minutes_part, ''''];
+        number_part = [degrees_part '° ' minutes_part ''''];
       endfor
     case "degrees2dms"
       for i = 1:length (angles);
-        d = floor (angles); % degrees
+        d = round (angles); % degrees
         aux = m = (angles - d) * 60; % minutes
-        m = floor (m);
+        m = round (m);
         s = (aux - m) * 60; % seconds
+        degrees_part = num2str (d);
         minutes_part = round2str (m);
         seconds_part = round2str (s, n);
-        number_part = [num2str(d), '° ', minutes_part, ''' ', seconds_part, '"'];
+        number_part = [degrees_part '° ' minutes_part ''' ' seconds_part '"'];
       endfor
   endswitch
   
   space_char = char (ones (length (angles), 1)*' ');
-  switch (unit)
-    case "radians"
-      R_char = char (ones (length (angles), 1)*'R');
-      string = [space_char number_part space_char R_char space_char signs space_char];
-    case {"degrees", "degrees2dm", "degrees2dms"}
-      string = [space_char number_part space_char signs space_char];
-  endswitch
+  if (strcmp (unit, "radians") && (strcmp (sign_notation, "ew") || strcmp (sign_notation, "ns")))
+    R_char = char (ones (length (angles), 1)*'R');
+    string = [space_char number_part space_char R_char space_char signs space_char];
+  elseif (strcmp (unit, "radians")) % sign_notation is 'pm' or 'none'
+    R_char = char (ones (length (angles), 1)*'R');
+    string = [space_char signs number_part space_char R_char space_char];
+  elseif (strcmp (sign_notation, "ew") || strcmp (sign_notation, "ns")) % unit is degrees, degrees2dm or degrees2dms
+    string = [space_char number_part space_char signs space_char];
+  else % sign_notation is "pm" or "none" and unit is degrees, degrees2dm or degrees2dms
+    string = [space_char signs number_part space_char];
+  endif
   
 endfunction
 
 % digits to represent 
 function [str] = round2str(number, dig = 0, first = false)
-  if first == false && number < 10
-    precending_zero = num2str ('0');
-  else
-    precending_zero = '';
-  endif
-  
   if (dig < 0)
     significants = num2str (-1 * dig);
     str = num2str (number, ['%.' significants 'f']);
-    str = [precending_zero str];
-  elseif dig == 0
+  elseif (dig == 0)
     str = num2str (number, ['%.f']);
-    str = [precending_zero str];
   else
     multiplier = 10 ** (dig);
-    number = floor (number / multiplier) * multiplier;
+    number = round (number / multiplier) * multiplier;
     str = num2str (number, ['%.f']);
+  endif
+  
+  if (first == false && number < 10)
+    precending_zero = num2str ('0');
     str = [precending_zero str];
   endif
+endfunction
+
+function [num] = my_round (X, N, type = "decimals")
+  dig = 0
+  if (strcmp (type, "significant"))
+    # first need to discover the number of digits before point
+    %I = floor (X);
+    dig = log10 (X);
+  elseif (strcmp (type, "decimals") == 0)
+    error (["round.m: Error, type should be \"decimals\" or \"significant\". You used " type " ."]);
+    print_usage ();
+  endif
+  
+##  if (strcmp (type, "decimals"))
+##    
+##  elseif (strcmp (type, "significant"))
+##    error ("round.m: Error unimplemented.");
+##    print_usage ();
+##  else
+##    error ("round.m: Error unsuported type.");
+##    print_usage ();
+##  endif
 endfunction
 
 %!test
