@@ -45,78 +45,61 @@ function [string] = angl2str (angles, sign_notation = "none", unit = "degrees", 
   sign_notation = tolower(sign_notation);
   if (!(strcmp (sign_notation, "ew") || strcmp (sign_notation, "ns") ||
         strcmp (sign_notation, "pm") || strcmp (sign_notation, "none")))
-    error(["angl2str.m: sign_notation should be \"ew\" (east/west), \"ns\" (north/south), \"pm\" (plus/minus) or \"none\". Got " original "."]);
+    error(["angl2str.m: sign_notation should be \"ew\" (east/west), \"ns\" (north/south), \"pm\" (plus/minus) or \"none\". Received " original "."]);
   endif
   
   original = unit;
   unit = tolower(unit);
   if (!(strcmp (unit, "radians") || strcmp (unit, "degrees") ||
         strcmp (unit, "degrees2dm") || strcmp (unit, "degrees2dms")))
-    error (["angl2str.m: unit should be \"radians\", \"degrees\", \"degrees2dm\" or \"degrees2dms\". Got " original "."]);
+    error (["angl2str.m: unit should be \"radians\", \"degrees\", \"degrees2dm\" or \"degrees2dms\". Received " original "."]);
   endif
   
-  % vectorize these for
+  # vectorize these for
   signs = char (zeros (length (angles), 1));
   switch (sign_notation)
     case "ew"
-      for i = 1: length (angles)
-        if (angles(i) == 0)
-          signs(i) = ' ';
-        elseif (angles(i) < 0)
-          signs(i) = 'W';
-        else
-          signs(i) = 'E';
-        endif
-      endfor
+      signs(angles == 0) = ' ';
+      signs(angles <  0) = 'W';
+      signs(angles >  0) = 'E';
     case "ns"
-      for i = 1: length (angles)
-        if (angles(i) == 0)
-          signs(i) = ' ';
-        elseif (angles(i) < 0)
-          signs(i) = 'S';
-        else
-          signs(i) = 'N';
-        endif
-      endfor
+      signs(angles == 0) = ' ';
+      signs(angles <  0) = 'S';
+      signs(angles >  0) = 'N';
     case "pm"
-      for i = 1: length (angles)
-        if (angles(i) >= 0)
-          signs(i) = '+';
-        elseif (angles(i) < 0)
-          signs(i) = '-';
-        endif
-      endfor
+      signs(angles >= 0) = '+';
+      signs(angles <  0) = '-';
     case "none"
-      for i = 1: length (angles)
-        if (angles(i) >= 0)
-          signs(i) = ' ';
-        elseif (angles(i) < 0)
-          signs(i) = '-';
-        endif
-      endfor
+      has_negative = find (angles < 0, 1);
+      if (length (has_negative) == 0)
+        signs(:) = '';
+      else
+        signs(angles >= 0) = ' ';
+        signs(angles <  0) = '-';
+      endif
   endswitch
   angles = abs (angles);
   
   # first the verification, after the loop. For speed.
   switch (unit)
     case "radians"
-      number_part = round2str(angles, n, first=true);% num2str (angles, n);
+      number_part = round2str(angles, n, first=true);# num2str (angles, n);
     case "degrees"
-      number_part = [round2str(angles, n, first=true) '°'];% num2str (angles, n);
+      number_part = [round2str(angles, n, first=true) '°'];# num2str (angles, n);
     case "degrees2dm"
       for i = 1:length (angles);
-        d = round (angles); % degrees
-        m = (angles - d) * 60; % minutes
+        d = round (angles); # degrees
+        m = (angles - d) * 60; # minutes
         degrees_part = num2str (d);
         minutes_part = round2str(m, n);
         number_part = [degrees_part '° ' minutes_part ''''];
       endfor
     case "degrees2dms"
       for i = 1:length (angles);
-        d = round (angles); % degrees
-        aux = m = (angles - d) * 60; % minutes
+        d = round (angles); # degrees
+        aux = m = (angles - d) * 60; # minutes
         m = round (m);
-        s = (aux - m) * 60; % seconds
+        s = (aux - m) * 60; # seconds
         degrees_part = num2str (d);
         minutes_part = round2str (m);
         seconds_part = round2str (s, n);
@@ -128,18 +111,18 @@ function [string] = angl2str (angles, sign_notation = "none", unit = "degrees", 
   if (strcmp (unit, "radians") && (strcmp (sign_notation, "ew") || strcmp (sign_notation, "ns")))
     R_char = char (ones (length (angles), 1)*'R');
     string = [space_char number_part space_char R_char space_char signs space_char];
-  elseif (strcmp (unit, "radians")) % sign_notation is 'pm' or 'none'
+  elseif (strcmp (unit, "radians")) # sign_notation is 'pm' or 'none'
     R_char = char (ones (length (angles), 1)*'R');
     string = [space_char signs number_part space_char R_char space_char];
-  elseif (strcmp (sign_notation, "ew") || strcmp (sign_notation, "ns")) % unit is degrees, degrees2dm or degrees2dms
+  elseif (strcmp (sign_notation, "ew") || strcmp (sign_notation, "ns")) # unit is degrees, degrees2dm or degrees2dms
     string = [space_char number_part space_char signs space_char];
-  else % sign_notation is "pm" or "none" and unit is degrees, degrees2dm or degrees2dms
+  else # sign_notation is "pm" or "none" and unit is degrees, degrees2dm or degrees2dms
     string = [space_char signs number_part space_char];
   endif
   
 endfunction
 
-% digits to represent 
+# digits to represent
 function [str] = round2str(number, dig = 0, first = false)
   if (dig < 0)
     significants = num2str (-1 * dig);
@@ -156,28 +139,6 @@ function [str] = round2str(number, dig = 0, first = false)
     precending_zero = num2str ('0');
     str = [precending_zero str];
   endif
-endfunction
-
-function [num] = my_round (X, N, type = "decimals")
-  dig = 0
-  if (strcmp (type, "significant"))
-    # first need to discover the number of digits before point
-    %I = floor (X);
-    dig = log10 (X);
-  elseif (strcmp (type, "decimals") == 0)
-    error (["round.m: Error, type should be \"decimals\" or \"significant\". You used " type " ."]);
-    print_usage ();
-  endif
-  
-##  if (strcmp (type, "decimals"))
-##    
-##  elseif (strcmp (type, "significant"))
-##    error ("round.m: Error unimplemented.");
-##    print_usage ();
-##  else
-##    error ("round.m: Error unsuported type.");
-##    print_usage ();
-##  endif
 endfunction
 
 %!test
