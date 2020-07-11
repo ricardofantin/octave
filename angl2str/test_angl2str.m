@@ -18,6 +18,7 @@ angl2str([-181; 181; -361; 361], 'ew')
 angl2str([-181; 181; -361; 361], 'ns')
 % unexpected inputs types:
 angl2str('string_instead_of_number')
+angl2str([1 2;3 4]);
 angl2str(1, 'SIGN_NOTATION_UNKNOWN')
 angl2str(1, 'none', 'UNIT_UNKNOWN')
 angl2str(1, 'none', 'degrees', 'string_instead_of_number')

@@ -38,6 +38,7 @@
 
 function [string] = angl2str (angles, sign_notation = "none", unit = "degrees", n = -2)
   if (nargin < 1 || nargin > 4)
+    error (["angl2str: Error, incorrect number of arguments. Expected from 1 to 4 arguments, received " nargin "."]);
     print_usage ();
   endif
   
@@ -45,7 +46,8 @@ function [string] = angl2str (angles, sign_notation = "none", unit = "degrees", 
   sign_notation = tolower(sign_notation);
   if (!(strcmp (sign_notation, "ew") || strcmp (sign_notation, "ns") ||
         strcmp (sign_notation, "pm") || strcmp (sign_notation, "none")))
-    error(["angl2str.m: sign_notation should be \"ew\" (east/west), \"ns\" (north/south), \"pm\" (plus/minus) or \"none\". Received " original "."]);
+    error (["angl2str.m: sign_notation should be \"ew\" (east/west), \"ns\" (north/south), \"pm\" (plus/minus) or \"none\". Received " original "."]);
+    print_usage();
   endif
   
   original = unit;
@@ -53,6 +55,21 @@ function [string] = angl2str (angles, sign_notation = "none", unit = "degrees", 
   if (!(strcmp (unit, "radians") || strcmp (unit, "degrees") ||
         strcmp (unit, "degrees2dm") || strcmp (unit, "degrees2dms")))
     error (["angl2str.m: unit should be \"radians\", \"degrees\", \"degrees2dm\" or \"degrees2dms\". Received " original "."]);
+    print_usage ();
+  endif
+  
+  if (!isnumeric (angles))
+    error (["angl2str: Error, expected numeric angles. Received " (class (angles)) " angles type."]);
+    print_usage();
+  endif
+  
+  if (!isnumeric (n))
+    error (["angl2str: Error, expected a numeric value as fourth argument n. Received " n "."]);
+    print_usage ();
+  endif
+  
+  if (!iscolumn (angles))
+    angles = angles(:);
   endif
   
   # vectorize these for
@@ -67,8 +84,14 @@ function [string] = angl2str (angles, sign_notation = "none", unit = "degrees", 
       signs(angles <  0) = 'S';
       signs(angles >  0) = 'N';
     case "pm"
-      signs(angles >= 0) = '+';
+      signs(angles >  0) = '+';
       signs(angles <  0) = '-';
+      if (isempty (find (angles != 0, 1)))
+        signs(angles == 0) = '';
+      else
+        signs(angles == 0) = ' ';
+      endif
+      
     case "none"
       has_negative = find (angles < 0, 1);
       if (length (has_negative) == 0)
@@ -83,37 +106,34 @@ function [string] = angl2str (angles, sign_notation = "none", unit = "degrees", 
   # first the verification, after the loop. For speed.
   switch (unit)
     case "radians"
-      number_part = round2str(angles, n, first=true);# num2str (angles, n);
+      number_part = round2str (angles, n, first=true);
     case "degrees"
-      number_part = [round2str(angles, n, first=true) '°'];# num2str (angles, n);
+      l = ones (length (angles), 1);
+      number_part = [(round2str (angles, n, first=true)) (char ('°'.*l))];
     case "degrees2dm"
-      for i = 1:length (angles);
-        d = floor (angles); # degrees
-        m = (angles - d) * 60; # minutes
-        m = round (m, -n);
-        degrees_part = num2str (d);
-        minutes_part = round2str(m, n);
-        number_part = [degrees_part '° ' minutes_part ''''];
-      endfor
+      d = floor (angles); # degrees
+      intermediary_calc = (angles - d) * 60; # minutes
+      m = round (intermediary_calc, -n);
+      d(m >= 60 || (m == 0 && intermediary_calc >= 30)) += 1;
+      degrees_part = num2str (d);
+      minutes_part = round2str(m, n);
+      l = ones (length (angles), 1);
+      number_part = [degrees_part (char ('° '.*l)) minutes_part (char (''''.*l))];
     case "degrees2dms"
-      for i = 1:length (angles);
-        d = floor (angles); # degrees
-        aux = m = (angles - d) * 60; # minutes
-        m = floor (m);
-        s = round ((aux - m) * 60, -n); # seconds
-        if (s >= 60)
-          m += 1;
-          s = 0;
-        endif
-        if (m == 60)
-          d += 1;
-          s = 0;
-        endif
-        degrees_part = num2str (d);
-        minutes_part = round2str (m);
-        seconds_part = round2str (s, n);
-        number_part = [degrees_part '° ' minutes_part ''' ' seconds_part '"'];
-      endfor
+      d = floor (angles); # degrees
+      aux = m = (angles - d) * 60; # minutes
+      m = floor (m);
+      intermediary_calc = (aux - m) * 60;
+      s = round (intermediary_calc, -n); # seconds
+      m(s >= 60 || (s == 0 && intermediary_calc >= 30)) += 1;
+      s(s >= 60) =  0;
+      d(m == 60) += 1;
+      m(m == 60) =  0;
+      degrees_part = num2str (d);
+      minutes_part = round2str (m);
+      seconds_part = round2str (s, n);
+      l = ones (length (angles), 1);
+      number_part = [degrees_part (char ('° '.*l)) minutes_part (char (''' '.*l)) seconds_part (char ('"'.*l))];
   endswitch
   
   space_char = char (ones (length (angles), 1)*' ');
@@ -549,83 +569,91 @@ endfunction
 %!assert (angl2str (27, "none", "degrees2dms", 0), " 27° 00' 00\" ");
 %!assert (angl2str (27, "none", "degrees2dms", 1), " 27° 00' 00\" ");
 %!assert (angl2str (27, "none", "degrees2dms", 5), " 27° 00' 00\" ");
-%!assert (angl2str (77.7778, "ew", "radians", -5), " 77.77777 R E ");
-%!assert (angl2str (77.7778, "ew", "radians", -2), " 77.78 R E ");
-%!assert (angl2str (77.7778, "ew", "radians", 0), " 78 R E ");
-%!assert (angl2str (77.7778, "ew", "radians", 1), " 80 R E ");
-%!assert (angl2str (77.7778, "ew", "radians", 5), " 0 R E ");
-%!assert (angl2str (77.7778, "ew", "degrees", -5), " 77.77777° E ");
-%!assert (angl2str (77.7778, "ew", "degrees", -2), " 77.78° E ");
-%!assert (angl2str (77.7778, "ew", "degrees", 0), " 78° E ");
-%!assert (angl2str (77.7778, "ew", "degrees", 1), " 80° E ");
-%!assert (angl2str (77.7778, "ew", "degrees", 5), " 0° E ");
-%!assert (angl2str (77.7778, "ew", "degrees2dm", -5), " 77° 46.66620' E ");
-%!assert (angl2str (77.7778, "ew", "degrees2dm", -2), " 77° 46.67' E ");
-%!assert (angl2str (77.7778, "ew", "degrees2dm", 0), " 77° 47' E ");
-%!assert (angl2str (77.7778, "ew", "degrees2dm", 1), " 77° 50' E ");
-%!assert (angl2str (77.7778, "ew", "degrees2dm", 5), " 78° 00' E ");
-%!assert (angl2str (77.7778, "ew", "degrees2dms", -5), " 77° 46' 39.97200\" E ");
-%!assert (angl2str (77.7778, "ew", "degrees2dms", -2), " 77° 46' 39.97\" E ");
-%!assert (angl2str (77.7778, "ew", "degrees2dms", 0), " 77° 46' 40\" E ");
-%!assert (angl2str (77.7778, "ew", "degrees2dms", 1), " 77° 46' 40\" E ");
-%!assert (angl2str (77.7778, "ew", "degrees2dms", 5), " 77° 47' 00\" E ");
-%!assert (angl2str (77.7778, "ns", "radians", -5), " 77.77777 R N ");
-%!assert (angl2str (77.7778, "ns", "radians", -2), " 77.78 R N ");
-%!assert (angl2str (77.7778, "ns", "radians", 0), " 78 R N ");
-%!assert (angl2str (77.7778, "ns", "radians", 1), " 80 R N ");
-%!assert (angl2str (77.7778, "ns", "radians", 5), " 0 R N ");
-%!assert (angl2str (77.7778, "ns", "degrees", -5), " 77.77777° N ");
-%!assert (angl2str (77.7778, "ns", "degrees", -2), " 77.78° N ");
-%!assert (angl2str (77.7778, "ns", "degrees", 0), " 78° N ");
-%!assert (angl2str (77.7778, "ns", "degrees", 1), " 80° N ");
-%!assert (angl2str (77.7778, "ns", "degrees", 5), " 0° N ");
-%!assert (angl2str (77.7778, "ns", "degrees2dm", -5), " 77° 46.66620' N ");
-%!assert (angl2str (77.7778, "ns", "degrees2dm", -2), " 77° 46.67' N ");
-%!assert (angl2str (77.7778, "ns", "degrees2dm", 0), " 77° 47' N ");
-%!assert (angl2str (77.7778, "ns", "degrees2dm", 1), " 77° 50' N ");
-%!assert (angl2str (77.7778, "ns", "degrees2dm", 5), " 78° 00' N ");
-%!assert (angl2str (77.7778, "ns", "degrees2dms", -5), " 77° 46' 39.97200\" N ");
-%!assert (angl2str (77.7778, "ns", "degrees2dms", -2), " 77° 46' 39.97\" N ");
-%!assert (angl2str (77.7778, "ns", "degrees2dms", 0), " 77° 46' 40\" N ");
-%!assert (angl2str (77.7778, "ns", "degrees2dms", 1), " 77° 46' 40\" N ");
-%!assert (angl2str (77.7778, "ns", "degrees2dms", 5), " 77° 47' 00\" N ");
-%!assert (angl2str (77.7778, "pm", "radians", -5), " +77.77777 R ");
-%!assert (angl2str (77.7778, "pm", "radians", -2), " +77.78 R ");
-%!assert (angl2str (77.7778, "pm", "radians", 0), " +78 R ");
-%!assert (angl2str (77.7778, "pm", "radians", 1), " +80 R ");
-%!assert (angl2str (77.7778, "pm", "radians", 5), " +0 R ");
-%!assert (angl2str (77.7778, "pm", "degrees", -5), " +77.77777° ");
-%!assert (angl2str (77.7778, "pm", "degrees", -2), " +77.78° ");
-%!assert (angl2str (77.7778, "pm", "degrees", 0), " +78° ");
-%!assert (angl2str (77.7778, "pm", "degrees", 1), " +80° ");
-%!assert (angl2str (77.7778, "pm", "degrees", 5), " +0° ");
-%!assert (angl2str (77.7778, "pm", "degrees2dm", -5), " +77° 46.66620' ");
-%!assert (angl2str (77.7778, "pm", "degrees2dm", -2), " +77° 46.67' ");
-%!assert (angl2str (77.7778, "pm", "degrees2dm", 0), " +77° 47' ");
-%!assert (angl2str (77.7778, "pm", "degrees2dm", 1), " +77° 50' ");
-%!assert (angl2str (77.7778, "pm", "degrees2dm", 5), " +78° 00' ");
-%!assert (angl2str (77.7778, "pm", "degrees2dms", -5), " +77° 46' 39.97200\" ");
-%!assert (angl2str (77.7778, "pm", "degrees2dms", -2), " +77° 46' 39.97\" ");
-%!assert (angl2str (77.7778, "pm", "degrees2dms", 0), " +77° 46' 40\" ");
-%!assert (angl2str (77.7778, "pm", "degrees2dms", 1), " +77° 46' 40\" ");
-%!assert (angl2str (77.7778, "pm", "degrees2dms", 5), " +77° 47' 00\" ");
-%!assert (angl2str (77.7778, "none", "radians", -5), " 77.77777 R ");
-%!assert (angl2str (77.7778, "none", "radians", -2), " 77.78 R ");
-%!assert (angl2str (77.7778, "none", "radians", 0), " 78 R ");
-%!assert (angl2str (77.7778, "none", "radians", 1), " 80 R ");
-%!assert (angl2str (77.7778, "none", "radians", 5), " 0 R ");
-%!assert (angl2str (77.7778, "none", "degrees", -5), " 77.77777° ");
-%!assert (angl2str (77.7778, "none", "degrees", -2), " 77.78° ");
-%!assert (angl2str (77.7778, "none", "degrees", 0), " 78° ");
-%!assert (angl2str (77.7778, "none", "degrees", 1), " 80° ");
-%!assert (angl2str (77.7778, "none", "degrees", 5), " 0° ");
-%!assert (angl2str (77.7778, "none", "degrees2dm", -5), " 77° 46.66620' ");
-%!assert (angl2str (77.7778, "none", "degrees2dm", -2), " 77° 46.67' ");
-%!assert (angl2str (77.7778, "none", "degrees2dm", 0), " 77° 47' ");
-%!assert (angl2str (77.7778, "none", "degrees2dm", 1), " 77° 50' ");
-%!assert (angl2str (77.7778, "none", "degrees2dm", 5), " 78° 00' ");
-%!assert (angl2str (77.7778, "none", "degrees2dms", -5), " 77° 46' 39.97200\" ");
-%!assert (angl2str (77.7778, "none", "degrees2dms", -2), " 77° 46' 39.97\" ");
-%!assert (angl2str (77.7778, "none", "degrees2dms", 0), " 77° 46' 40\" ");
-%!assert (angl2str (77.7778, "none", "degrees2dms", 1), " 77° 46' 40\" ");
-%!assert (angl2str (77.7778, "none", "degrees2dms", 5), " 77° 47' 00\" ");
+%!assert (angl2str (77.77777, "ew", "radians", -5), " 77.77777 R E ");
+%!assert (angl2str (77.77777, "ew", "radians", -2), " 77.78 R E ");
+%!assert (angl2str (77.77777, "ew", "radians", 0), " 78 R E ");
+%!assert (angl2str (77.77777, "ew", "radians", 1), " 80 R E ");
+%!assert (angl2str (77.77777, "ew", "radians", 5), " 0 R E ");
+%!assert (angl2str (77.77777, "ew", "degrees", -5), " 77.77777° E ");
+%!assert (angl2str (77.77777, "ew", "degrees", -2), " 77.78° E ");
+%!assert (angl2str (77.77777, "ew", "degrees", 0), " 78° E ");
+%!assert (angl2str (77.77777, "ew", "degrees", 1), " 80° E ");
+%!assert (angl2str (77.77777, "ew", "degrees", 5), " 0° E ");
+%!assert (angl2str (77.77777, "ew", "degrees2dm", -5), " 77° 46.66620' E ");
+%!assert (angl2str (77.77777, "ew", "degrees2dm", -2), " 77° 46.67' E ");
+%!assert (angl2str (77.77777, "ew", "degrees2dm", 0), " 77° 47' E ");
+%!assert (angl2str (77.77777, "ew", "degrees2dm", 1), " 77° 50' E ");
+%!assert (angl2str (77.77777, "ew", "degrees2dm", 5), " 78° 00' E ");
+%!assert (angl2str (77.77777, "ew", "degrees2dms", -5), " 77° 46' 39.97200\" E ");
+%!assert (angl2str (77.77777, "ew", "degrees2dms", -2), " 77° 46' 39.97\" E ");
+%!assert (angl2str (77.77777, "ew", "degrees2dms", 0), " 77° 46' 40\" E ");
+%!assert (angl2str (77.77777, "ew", "degrees2dms", 1), " 77° 46' 40\" E ");
+%!assert (angl2str (77.77777, "ew", "degrees2dms", 5), " 77° 47' 00\" E ");
+%!assert (angl2str (77.77777, "ns", "radians", -5), " 77.77777 R N ");
+%!assert (angl2str (77.77777, "ns", "radians", -2), " 77.78 R N ");
+%!assert (angl2str (77.77777, "ns", "radians", 0), " 78 R N ");
+%!assert (angl2str (77.77777, "ns", "radians", 1), " 80 R N ");
+%!assert (angl2str (77.77777, "ns", "radians", 5), " 0 R N ");
+%!assert (angl2str (77.77777, "ns", "degrees", -5), " 77.77777° N ");
+%!assert (angl2str (77.77777, "ns", "degrees", -2), " 77.78° N ");
+%!assert (angl2str (77.77777, "ns", "degrees", 0), " 78° N ");
+%!assert (angl2str (77.77777, "ns", "degrees", 1), " 80° N ");
+%!assert (angl2str (77.77777, "ns", "degrees", 5), " 0° N ");
+%!assert (angl2str (77.77777, "ns", "degrees2dm", -5), " 77° 46.66620' N ");
+%!assert (angl2str (77.77777, "ns", "degrees2dm", -2), " 77° 46.67' N ");
+%!assert (angl2str (77.77777, "ns", "degrees2dm", 0), " 77° 47' N ");
+%!assert (angl2str (77.77777, "ns", "degrees2dm", 1), " 77° 50' N ");
+%!assert (angl2str (77.77777, "ns", "degrees2dm", 5), " 78° 00' N ");
+%!assert (angl2str (77.77777, "ns", "degrees2dms", -5), " 77° 46' 39.97200\" N ");
+%!assert (angl2str (77.77777, "ns", "degrees2dms", -2), " 77° 46' 39.97\" N ");
+%!assert (angl2str (77.77777, "ns", "degrees2dms", 0), " 77° 46' 40\" N ");
+%!assert (angl2str (77.77777, "ns", "degrees2dms", 1), " 77° 46' 40\" N ");
+%!assert (angl2str (77.77777, "ns", "degrees2dms", 5), " 77° 47' 00\" N ");
+%!assert (angl2str (77.77777, "pm", "radians", -5), " +77.77777 R ");
+%!assert (angl2str (77.77777, "pm", "radians", -2), " +77.78 R ");
+%!assert (angl2str (77.77777, "pm", "radians", 0), " +78 R ");
+%!assert (angl2str (77.77777, "pm", "radians", 1), " +80 R ");
+%!assert (angl2str (77.77777, "pm", "radians", 5), " +0 R ");
+%!assert (angl2str (77.77777, "pm", "degrees", -5), " +77.77777° ");
+%!assert (angl2str (77.77777, "pm", "degrees", -2), " +77.78° ");
+%!assert (angl2str (77.77777, "pm", "degrees", 0), " +78° ");
+%!assert (angl2str (77.77777, "pm", "degrees", 1), " +80° ");
+%!assert (angl2str (77.77777, "pm", "degrees", 5), " +0° ");
+%!assert (angl2str (77.77777, "pm", "degrees2dm", -5), " +77° 46.66620' ");
+%!assert (angl2str (77.77777, "pm", "degrees2dm", -2), " +77° 46.67' ");
+%!assert (angl2str (77.77777, "pm", "degrees2dm", 0), " +77° 47' ");
+%!assert (angl2str (77.77777, "pm", "degrees2dm", 1), " +77° 50' ");
+%!assert (angl2str (77.77777, "pm", "degrees2dm", 5), " +78° 00' ");
+%!assert (angl2str (77.77777, "pm", "degrees2dms", -5), " +77° 46' 39.97200\" ");
+%!assert (angl2str (77.77777, "pm", "degrees2dms", -2), " +77° 46' 39.97\" ");
+%!assert (angl2str (77.77777, "pm", "degrees2dms", 0), " +77° 46' 40\" ");
+%!assert (angl2str (77.77777, "pm", "degrees2dms", 1), " +77° 46' 40\" ");
+%!assert (angl2str (77.77777, "pm", "degrees2dms", 5), " +77° 47' 00\" ");
+%!assert (angl2str (77.77777, "none", "radians", -5), " 77.77777 R ");
+%!assert (angl2str (77.77777, "none", "radians", -2), " 77.78 R ");
+%!assert (angl2str (77.77777, "none", "radians", 0), " 78 R ");
+%!assert (angl2str (77.77777, "none", "radians", 1), " 80 R ");
+%!assert (angl2str (77.77777, "none", "radians", 5), " 0 R ");
+%!assert (angl2str (77.77777, "none", "degrees", -5), " 77.77777° ");
+%!assert (angl2str (77.77777, "none", "degrees", -2), " 77.78° ");
+%!assert (angl2str (77.77777, "none", "degrees", 0), " 78° ");
+%!assert (angl2str (77.77777, "none", "degrees", 1), " 80° ");
+%!assert (angl2str (77.77777, "none", "degrees", 5), " 0° ");
+%!assert (angl2str (77.77777, "none", "degrees2dm", -5), " 77° 46.66620' ");
+%!assert (angl2str (77.77777, "none", "degrees2dm", -2), " 77° 46.67' ");
+%!assert (angl2str (77.77777, "none", "degrees2dm", 0), " 77° 47' ");
+%!assert (angl2str (77.77777, "none", "degrees2dm", 1), " 77° 50' ");
+%!assert (angl2str (77.77777, "none", "degrees2dm", 5), " 78° 00' ");
+%!assert (angl2str (77.77777, "none", "degrees2dms", -5), " 77° 46' 39.97200\" ");
+%!assert (angl2str (77.77777, "none", "degrees2dms", -2), " 77° 46' 39.97\" ");
+%!assert (angl2str (77.77777, "none", "degrees2dms", 0), " 77° 46' 40\" ");
+%!assert (angl2str (77.77777, "none", "degrees2dms", 1), " 77° 46' 40\" ");
+%!assert (angl2str (77.77777, "none", "degrees2dms", 5), " 77° 47' 00\" ");
+%!assert (angl2str ([-181; 181; -361; 361]), [" -181.00° ";"  181.00° ";" -361.00° ";"  361.00° "]);
+%!assert (angl2str ([-181; 181; -361; 361], 'ew'), [" 181.00° W ";" 181.00° E ";" 361.00° W ";" 361.00° E "]);
+%!assert (angl2str ([-181; 181; -361; 361], 'ns'), [" 181.00° S ";" 181.00° N ";" 361.00° S ";" 361.00° N "]);
+%!assert (angl2str ([1 2;3 4]),[" 1.00° ";" 3.00° ";" 2.00° ";" 4.00° "]);
+%!error (angl2str ('string_instead_of_number'));
+%!error (angl2str (1, 'SIGN_NOTATION_UNKNOWN'));
+%!error (angl2str (1, 'none', 'UNIT_UNKNOWN'));
+%!error (angl2str (1, 'none', 'degrees', 'string_instead_of_number'));
