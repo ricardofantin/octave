@@ -1,0 +1,12 @@
+[octave forge] (mapping) angl2str
+
+Hello,
+the code was tested allot. With inline functions I would change some parts, but today it is the best code that I can imagine.
+
+Some additional parameters from round() are needed. The round.m provided should be insert in the same directory before run angl2str. I'll, eventually, update round() function from octave core.
+
+I used a personal repository https://github.com/ricardofantin/octave to manage its versions. Some comments and the test generator to run in MATLAB are available there.
+
+Matlab uses ^{\circ} latex output to represent degrees, Octave uses °. Besides it, the outputs are, as far as I know, exactly the same.
+
+Ricardo.
