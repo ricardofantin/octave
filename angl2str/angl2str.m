@@ -72,8 +72,8 @@ function [string] = angl2str (angles, sign_notation = "none", unit = "degrees", 
     angles = angles(:);
   endif
   
-  # vectorize these for
-  signs = char (zeros (length (angles), 1));
+  l = ones (length (angles), 1);
+  signs = char (l);
   switch (sign_notation)
     case "ew"
       signs(angles == 0) = ' ';
@@ -91,7 +91,6 @@ function [string] = angl2str (angles, sign_notation = "none", unit = "degrees", 
       else
         signs(angles == 0) = ' ';
       endif
-      
     case "none"
       has_negative = find (angles < 0, 1);
       if (length (has_negative) == 0)
@@ -106,10 +105,10 @@ function [string] = angl2str (angles, sign_notation = "none", unit = "degrees", 
   # first the verification, after the loop. For speed.
   switch (unit)
     case "radians"
-      number_part = round2str (angles, n, first=true);
+      number_part = num2str (round (angles, -n), ['%.' (num2str(max (-n, 0))) 'f']);
     case "degrees"
       l = ones (length (angles), 1);
-      number_part = [(round2str (angles, n, first=true)) (char ('°'.*l))];
+      number_part = [(num2str (round (angles, -n), ['%.' (num2str(max (-n, 0))) 'f'])) (char ('°'.*l))];
     case "degrees2dm"
       d = floor (angles); # degrees
       intermediary_calc = (angles - d) * 60; # minutes
@@ -117,8 +116,7 @@ function [string] = angl2str (angles, sign_notation = "none", unit = "degrees", 
       d(m >= 60 || (m == 0 && intermediary_calc >= 30)) += 1;
       degrees_part = num2str (d);
       minutes_part = round2str(m, n);
-      l = ones (length (angles), 1);
-      number_part = [degrees_part (char ('° '.*l)) minutes_part (char (''''.*l))];
+      number_part = [degrees_part (char (l.*'° ')) minutes_part (char (l.*''''))];
     case "degrees2dms"
       d = floor (angles); # degrees
       aux = m = (angles - d) * 60; # minutes
@@ -132,16 +130,15 @@ function [string] = angl2str (angles, sign_notation = "none", unit = "degrees", 
       degrees_part = num2str (d);
       minutes_part = round2str (m);
       seconds_part = round2str (s, n);
-      l = ones (length (angles), 1);
-      number_part = [degrees_part (char ('° '.*l)) minutes_part (char (''' '.*l)) seconds_part (char ('"'.*l))];
+      number_part = [degrees_part (char (l.*'° ')) minutes_part (char (l.*''' ')) seconds_part (char (l.*'"'))];
   endswitch
   
-  space_char = char (ones (length (angles), 1)*' ');
+  space_char = char (l*' ');
   if (strcmp (unit, "radians") && (strcmp (sign_notation, "ew") || strcmp (sign_notation, "ns")))
-    R_char = char (ones (length (angles), 1)*'R');
+    R_char = char (l*'R');
     string = [space_char number_part space_char R_char space_char signs space_char];
   elseif (strcmp (unit, "radians")) # sign_notation is 'pm' or 'none'
-    R_char = char (ones (length (angles), 1)*'R');
+    R_char = char (l.*'R');
     string = [space_char signs number_part space_char R_char space_char];
   elseif (strcmp (sign_notation, "ew") || strcmp (sign_notation, "ns")) # unit is degrees, degrees2dm or degrees2dms
     string = [space_char number_part space_char signs space_char];
@@ -150,25 +147,27 @@ function [string] = angl2str (angles, sign_notation = "none", unit = "degrees", 
   endif
 endfunction
 
-# digits to represent
-function [str] = round2str(number, dig = 0, first = false)
-  if (dig < 0)
-    significants = num2str (-dig);
-    str = num2str (number, ['%.' significants 'f']);
-  elseif (dig == 0)
-    str = num2str (round (number));
+# round numbers, convert to char and complete with leading 0 to guarantee two digits integer part
+function [str] = round2str(number, dig = 0)
+  if (dig >= 0)
+    str = num2str (round (number, -dig), '%02.f');
   else
-    number = round (number, -dig);
-    str = num2str (number, '%.f');
-  endif
-  
-  if (first == false && number < 10)
-    precending_zero = num2str ('0');
-    str = [precending_zero str];
+    post_point_digits = max (-dig, 0);
+    final_length = 2 + 1 + post_point_digits;
+    format = ['%0' (num2str (final_length)) '.' (num2str (post_point_digits)) 'f'];
+    str = num2str (round (number, -dig), format);
   endif
 endfunction
 
 %!test
+%!error (angl2str ('string_instead_of_number'));
+%!error (angl2str (1, 'SIGN_NOTATION_UNKNOWN'));
+%!error (angl2str (1, 'none', 'UNIT_UNKNOWN'));
+%!error (angl2str (1, 'none', 'degrees', 'string_instead_of_number'));
+%!assert (angl2str ([-181; 181; -361; 361]), [" -181.00° ";"  181.00° ";" -361.00° ";"  361.00° "]);
+%!assert (angl2str ([-181; 181; -361; 361], 'ew'), [" 181.00° W ";" 181.00° E ";" 361.00° W ";" 361.00° E "]);
+%!assert (angl2str ([-181; 181; -361; 361], 'ns'), [" 181.00° S ";" 181.00° N ";" 361.00° S ";" 361.00° N "]);
+%!assert (angl2str ([1 2;3 4]),[" 1.00° ";" 3.00° ";" 2.00° ";" 4.00° "]);
 %!assert (angl2str (-12, "ew", "radians", -5), " 12.00000 R W ");
 %!assert (angl2str (-12, "ew", "radians", -2), " 12.00 R W ");
 %!assert (angl2str (-12, "ew", "radians", 0), " 12 R W ");
@@ -649,11 +648,3 @@ endfunction
 %!assert (angl2str (77.77777, "none", "degrees2dms", 0), " 77° 46' 40\" ");
 %!assert (angl2str (77.77777, "none", "degrees2dms", 1), " 77° 46' 40\" ");
 %!assert (angl2str (77.77777, "none", "degrees2dms", 5), " 77° 47' 00\" ");
-%!assert (angl2str ([-181; 181; -361; 361]), [" -181.00° ";"  181.00° ";" -361.00° ";"  361.00° "]);
-%!assert (angl2str ([-181; 181; -361; 361], 'ew'), [" 181.00° W ";" 181.00° E ";" 361.00° W ";" 361.00° E "]);
-%!assert (angl2str ([-181; 181; -361; 361], 'ns'), [" 181.00° S ";" 181.00° N ";" 361.00° S ";" 361.00° N "]);
-%!assert (angl2str ([1 2;3 4]),[" 1.00° ";" 3.00° ";" 2.00° ";" 4.00° "]);
-%!error (angl2str ('string_instead_of_number'));
-%!error (angl2str (1, 'SIGN_NOTATION_UNKNOWN'));
-%!error (angl2str (1, 'none', 'UNIT_UNKNOWN'));
-%!error (angl2str (1, 'none', 'degrees', 'string_instead_of_number'));
