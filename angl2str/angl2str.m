@@ -16,7 +16,7 @@
 ## -*- texinfo -*- 
 ## @deftypefn {} {@var{string} =} angl2str (@var{angles}, @var{sign_notation}, @var{unit}, @var{n})
 ## Convert angles to notation as angles represents latitudes or longitudes.
-## Unless especified in unit, the angle is espected to be in degrees.
+## Unless specified in unit, the angle is expected to be in degrees.
 ## The resulted string is intended to show angles in map.
 ## 
 ## The @var{sign_notation} specifies how the positive/negative sign is
@@ -26,10 +26,9 @@
 ## The possible @var{unit}'s values are "radians", "degrees", "degress2dm" or "degrees2dms".
 ## dms stands for degrees minutes and seconds.
 ## 
-## The parameter @var{n} indicates how many algarishm will be used to round the
-## last angle part.
+## The parameter @var{n} indicates how many digits will have the last angle part.
 ##
-## Octave uses ° for degress, Matlab uses ^{\circ} latex output.
+## Octave uses ° for degrees, Matlab uses ^{\circ} latex output.
 ## @seealso{str2angle}
 ## @end deftypefn
 
