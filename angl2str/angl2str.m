@@ -104,10 +104,11 @@ function [string] = angl2str (angles, sign_notation = "none", unit = "degrees", 
   # first the verification, after the loop. For speed.
   switch (unit)
     case "radians"
-      number_part = num2str (round (angles, -n), ['%.' (num2str(max (-n, 0))) 'f']);
+      # %100 is to right align
+      number_part = num2str (round (angles, -n), ['%100.' (num2str(max (-n, 0))) 'f']);
     case "degrees"
       l = ones (length (angles), 1);
-      number_part = [(num2str (round (angles, -n), ['%.' (num2str(max (-n, 0))) 'f'])) (char ('°'.*l))];
+      number_part = [(num2str (round (angles, -n), ['%100.' (num2str(max (-n, 0))) 'f'])) (char ('°'.*l))];
     case "degrees2dm"
       d = floor (angles); # degrees
       intermediary_calc = (angles - d) * 60; # minutes
@@ -167,6 +168,7 @@ endfunction
 %!assert (angl2str ([-181; 181; -361; 361], 'ew'), [" 181.00° W ";" 181.00° E ";" 361.00° W ";" 361.00° E "]);
 %!assert (angl2str ([-181; 181; -361; 361], 'ns'), [" 181.00° S ";" 181.00° N ";" 361.00° S ";" 361.00° N "]);
 %!assert (angl2str ([1 2;3 4]),[" 1.00° ";" 3.00° ";" 2.00° ";" 4.00° "]);
+%!assert (angl2str ([55555 1.22]), [" 55555.00° ";"     1.22° "]);
 %!assert (angl2str (-12, "ew", "radians", -5), " 12.00000 R W ");
 %!assert (angl2str (-12, "ew", "radians", -2), " 12.00 R W ");
 %!assert (angl2str (-12, "ew", "radians", 0), " 12 R W ");
