@@ -6,6 +6,9 @@ T = {'decimals';'significant'};
 F = fopen('assert_round.m', 'w')
 for ti = 1:length(T)
   for ni = 1:length(N)
+    if strcmp(cell2mat(T(ti)), 'significant') && N(ni) <= 0
+      continue
+    end
     print_assert(a, N(ni), cell2mat(T(ti)), F);
     print_assert(b, N(ni), cell2mat(T(ti)), F);
     print_assert(a+b, N(ni), cell2mat(T(ti)), F);
@@ -20,6 +23,6 @@ end
 function [] = print_assert(X, N, T, F)
   result = num2str(round(X, N, T));
   arguments = ['[' num2str(X) '], ' num2str(N) ', "' T '"'];
-  str = ['%!assert (round (', arguments ,'), [', result, ']);'];
+  str = ['%!assert (round (', arguments ,'), [', result, ']);\n'];
   fwrite(F, str);
 end
