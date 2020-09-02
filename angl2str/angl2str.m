@@ -23,11 +23,11 @@
 ## shown. The possibles values are "ew" (east/west), "ns" (north/shouth),
 ## "pm" (plus/minus) or "none". Default value is "none".
 ## 
-## The possible @var{unit}'s values are "radians", "degrees", "degress2dm" or "degrees2dms".
-## dms stands for degrees minutes and seconds.
+## The possible @var{unit}'s values are "radians", "degrees", "degress2dm" or
+## "degrees2dms". dms stands for degrees minutes and seconds.
 ## 
 ## The parameter @var{n} indicates how many digits will have the last angle part.
-##
+## 
 ## Octave uses ° for degrees, Matlab uses ^{\circ} latex output.
 ## @seealso{str2angle}
 ## @end deftypefn
@@ -37,34 +37,33 @@
 
 function [string] = angl2str (angles, sign_notation = "none", unit = "degrees", n = -2)
   if (nargin < 1 || nargin > 4)
-    error (["angl2str: Error, incorrect number of arguments. Expected from 1 to 4 arguments, received " nargin "."]);
-    print_usage ();
-  endif
-  
-  original = sign_notation;
-  sign_notation = tolower(sign_notation);
-  if (!(strcmp (sign_notation, "ew") || strcmp (sign_notation, "ns") ||
-        strcmp (sign_notation, "pm") || strcmp (sign_notation, "none")))
-    error (["angl2str.m: sign_notation should be \"ew\" (east/west), \"ns\" (north/south), \"pm\" (plus/minus) or \"none\". Received " original "."]);
-    print_usage();
-  endif
-  
-  original = unit;
-  unit = tolower(unit);
-  if (!(strcmp (unit, "radians") || strcmp (unit, "degrees") ||
-        strcmp (unit, "degrees2dm") || strcmp (unit, "degrees2dms")))
-    error (["angl2str.m: unit should be \"radians\", \"degrees\", \"degrees2dm\" or \"degrees2dms\". Received " original "."]);
-    print_usage ();
+    error (["angl2str: incorrect number of arguments. Expected from 1 to 4 " ...
+            "arguments, received " nargin "."]);
   endif
   
   if (!isnumeric (angles))
-    error (["angl2str: Error, expected numeric angles. Received " (class (angles)) " angles type."]);
-    print_usage();
+    error (["angl2str: expected numeric angles. Received " (class (angles)) ...
+            " angles type."]);
   endif
   
   if (!isnumeric (n))
-    error (["angl2str: Error, expected a numeric value as fourth argument n. Received " n "."]);
-    print_usage ();
+    error (["angl2str: expected a numeric value as fourth argument n. " ...
+            "Received " n "."]);
+  endif
+  
+  original = sign_notation;
+  sign_notation = lower(sign_notation);
+  if (!ismember (sign_notation, {"ew", "ns", "pm", "none"}))
+    error (["angl2str.m: second argument, sign_notation, should be \"ew\" " ...
+            "(east/west), \"ns\" (north/south), \"pm\" (plus/minus) or " ...
+            "\"none\". Received " original "."]);
+  endif
+  
+  original = unit;
+  unit = lower(unit);
+  if (!ismember (unit, {"radians", "degrees", "degrees2dm", "degrees2dms"}))
+    error (["angl2str.m: unit should be \"radians\", \"degrees\", "...
+            "\"degrees2dm\" or \"degrees2dms\". Received " original "."]);
   endif
   
   if (!iscolumn (angles))
@@ -98,21 +97,25 @@ function [string] = angl2str (angles, sign_notation = "none", unit = "degrees", 
         signs(angles >= 0) = ' ';
         signs(angles <  0) = '-';
       endif
+    otherwise
+      
   endswitch
   angles = abs (angles);
   
-  # first the verification, after the loop. For speed.
+  ## first the verification, after the loop. For speed.
   switch (unit)
     case "radians"
-      # %100 is to right align
-      number_part = num2str (round (angles, -n), ['%100.' (num2str(max (-n, 0))) 'f']);
+      ## %100 is to right align
+      number_part = num2str (round_a (angles, -n),
+                             ['%100.' (num2str(max (-n, 0))) 'f']);
     case "degrees"
       l = ones (length (angles), 1);
-      number_part = [(num2str (round (angles, -n), ['%100.' (num2str(max (-n, 0))) 'f'])) (char ('°'.*l))];
+      number_part = [(num2str (round_a (angles, -n),
+                      ['%100.' (num2str(max (-n, 0))) 'f'])) (char ('°'.*l))];
     case "degrees2dm"
       d = floor (angles); # degrees
       intermediary_calc = (angles - d) * 60; # minutes
-      m = round (intermediary_calc, -n);
+      m = round_a (intermediary_calc, -n);
       d(m >= 60 || (m == 0 && intermediary_calc >= 30)) += 1;
       degrees_part = num2str (d);
       minutes_part = round2str(m, n);
@@ -122,7 +125,7 @@ function [string] = angl2str (angles, sign_notation = "none", unit = "degrees", 
       aux = m = (angles - d) * 60; # minutes
       m = floor (m);
       intermediary_calc = (aux - m) * 60;
-      s = round (intermediary_calc, -n); # seconds
+      s = round_a (intermediary_calc, -n); # seconds
       m(s >= 60 || (s == 0 && intermediary_calc >= 30)) += 1;
       s(s >= 60) =  0;
       d(m == 60) += 1;
@@ -130,33 +133,52 @@ function [string] = angl2str (angles, sign_notation = "none", unit = "degrees", 
       degrees_part = num2str (d);
       minutes_part = round2str (m);
       seconds_part = round2str (s, n);
-      number_part = [degrees_part (char (l.*'° ')) minutes_part (char (l.*''' ')) seconds_part (char (l.*'"'))];
+      number_part = [degrees_part (char (l.*'° ')) minutes_part ...
+                     (char (l.*''' ')) seconds_part (char (l.*'"'))];
   endswitch
   
   space_char = char (l*' ');
-  if (strcmp (unit, "radians") && (strcmp (sign_notation, "ew") || strcmp (sign_notation, "ns")))
+  if (strcmp (unit, "radians") && ismember (sign_notation, ["ew", "ns"]))
     R_char = char (l*'R');
     string = [space_char number_part space_char R_char space_char signs space_char];
   elseif (strcmp (unit, "radians")) # sign_notation is 'pm' or 'none'
     R_char = char (l.*'R');
     string = [space_char signs number_part space_char R_char space_char];
-  elseif (strcmp (sign_notation, "ew") || strcmp (sign_notation, "ns")) # unit is degrees, degrees2dm or degrees2dms
+  elseif (ismember (sign_notation, ["ew", "ns"])) # unit is degrees, degrees2dm or degrees2dms
     string = [space_char number_part space_char signs space_char];
   else # sign_notation is "pm" or "none" and unit is degrees, degrees2dm or degrees2dms
     string = [space_char signs number_part space_char];
   endif
 endfunction
 
-# round numbers, convert to char and complete with leading 0 to guarantee two digits integer part
+## round numbers, convert to char and complete with leading 0 to guarantee
+## two digits in integer part
 function [str] = round2str(number, dig = 0)
   if (dig >= 0)
-    str = num2str (round (number, -dig), '%02.f');
+    str = num2str (round_a (number, -dig), '%02.f');
   else
     post_point_digits = max (-dig, 0);
     final_length = 2 + 1 + post_point_digits;
     format = ['%0' (num2str (final_length)) '.' (num2str (post_point_digits)) 'f'];
-    str = num2str (round (number, -dig), format);
+    str = num2str (round_a (number, -dig), format);
   endif
+endfunction
+
+function [num] = round_a (X, N = 0)
+  if (isnumeric (N) == 0)
+    str = num2str (N);
+    error (["round.m: Error, second argument N should be an integer. " ...
+            "Received " str " ."]);
+    print_usage ();
+  endif
+  
+  if (N == 0)
+    num = floor (X + 0.5 + 0.5i); # should be std::round
+    return;
+  endif
+  
+  multiplier = 10 .** (N);
+  num = (floor ((X .* multiplier) + 0.5 + 0.5i)) ./ multiplier;
 endfunction
 
 %!test
